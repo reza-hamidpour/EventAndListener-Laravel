@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comment;
 use App\Models\UnlockedAchievements;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AchievementsController extends Controller
 {
@@ -77,14 +79,13 @@ class AchievementsController extends Controller
         ];
         $achievements_comment = UnlockedAchievements::where('user_id', $user_id)->where('achievement_type', "Comment")->latest()->get();
         $achievements_lesson = UnlockedAchievements::where('user_id', $user_id)->where('achievement_type', "Lesson")->latest()->get();
-//        dd($achievements_lesson);
 
         if ( $achievements_comment->isNotEmpty()) {
             $response["comment"] = self::COMMENT_ACHIEVEMENTS[$achievements_comment->first()->achievement_index][0];
         }
 
         if ( $achievements_lesson->isNotEmpty() ) {
-            $response["lesson"] = self::LESSON_ACHIEVEMENTS[$achievements_comment->first()->achievement_index][0];
+            $response["lesson"] = self::LESSON_ACHIEVEMENTS[$achievements_lesson->first()->achievement_index][0];
         }
         return $response;
     }
@@ -110,7 +111,7 @@ class AchievementsController extends Controller
         if ($achievements_lesson->isNotEmpty()) {
             if ($achievements_lesson->first()->achievement_index + 1 <= count(self::LESSON_ACHIEVEMENTS) - 1) {
                 $response["lesson"] =
-                    self::LESSON_ACHIEVEMENTS[$achievements_comment->first()->achievement_index + 1][0];
+                    self::LESSON_ACHIEVEMENTS[$achievements_lesson->first()->achievement_index + 1][0];
             }
         } else {
             $response['lesson'] = self::LESSON_ACHIEVEMENTS[0][0];
@@ -123,6 +124,7 @@ class AchievementsController extends Controller
     protected function getBadgesContents($user_id)
     {
         $count_achievements = $this->getAchievementsCount($user_id);
+//        dd($count_achievements);
         if ($count_achievements > 3) { // the Intermediate level would start at 4
 
             $index_badges = $this->getAchievementIndex(self::BADGES, $count_achievements);
@@ -148,12 +150,13 @@ class AchievementsController extends Controller
     public function getAchievementsCount($user_id)
     {
         $all_achieves = UnlockedAchievements::where("user_id", $user_id)->latest()->get();
+
         $total_achieves = 0;
         foreach ($all_achieves as $achieve) {
             if ($achieve->achievement_type == "Comment") {
-                $total_achieves += self::COMMENT_ACHIEVEMENTS[$achieve->first()->achievement_index][1];
+                $total_achieves += self::COMMENT_ACHIEVEMENTS[$achieve->achievement_index][1];
             } else if ($achieve->achievement_type == "Lesson") {
-                $total_achieves += self::COMMENT_ACHIEVEMENTS[$achieve->first()->achievement_index][1];
+                $total_achieves += self::LESSON_ACHIEVEMENTS[$achieve->achievement_index][1];
             }
         }
         return $total_achieves;
@@ -166,31 +169,29 @@ class AchievementsController extends Controller
             "status" => false,
             "index" => 0,
         ];
-
         if ($path == "Comment") {
             $achievements = self::COMMENT_ACHIEVEMENTS;
         } else if ($path == "Lesson") {
             $achievements = self::LESSON_ACHIEVEMENTS;
         }
         $achievement_index = $this->getAchievementIndex($achievements, $achieves);
-        $first_achievement = $this->getfirstAchievement($user_id, $path);
+        $current_achievement = $this->getLatestAchievement($user_id, $path);
 
-
-        if ($first_achievement < $achievement_index)
+        if ($current_achievement < $achievement_index)
             return [
                 "status" => true,
                 "index" => $achievement_index
             ];
 
-        if ($achievement_index === -1 && $first_achievement !== -1)
+        if ($achievement_index === -1 && $current_achievement !== -1)
             return [
                 "status" => false,
-                "index" => $first_achievement,
+                "index" => $current_achievement,
             ];
 
         return [
             "status" => false,
-            "index" => $first_achievement,
+            "index" => $current_achievement,
         ];
 
     }
@@ -211,14 +212,14 @@ class AchievementsController extends Controller
 
     }
 
-    protected function getfirstAchievement($user_id, $path)
+    protected function getLatestAchievement($user_id, $path)
     {
         $first_ach = UnlockedAchievements::where('user_id', $user_id)->where('achievement_type', $path)->get();
         if ($first_ach->isNotEmpty()) {
             if ($path == "Lesson")
-                return self::LESSON_ACHIEVEMENTS[$first_ach->first()->achievement_index];
+                return $first_ach->last()->achievement_index;
             else if ($path === "Comment")
-                return self::COMMENT_ACHIEVEMENTS[$first_ach->first()->achievement_index];
+                return $first_ach->last()->achievement_index;
         } else {
             return -1;
         }
