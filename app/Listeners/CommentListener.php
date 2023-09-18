@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Http\Controllers\AchievementsController;
+use App\Models\Comment;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
@@ -19,9 +20,11 @@ class CommentListener
     /**
      * Handle the event.
      */
-    public function handle(object $event, Achievements $achievements): void
+    public function handle(object $event): void
     {
-        $count_comments = $event->comment->user()->user_id;
-        $achievements->store($count_comments, $event->comment->user(), "Comment");
+        $count_comments = Comment::where('user_id', $event->comment->user_id)->count();
+        $achievements = new AchievementsController();
+        $achievements->store($count_comments, $event->comment->user_id, "Comment");
+
     }
 }
