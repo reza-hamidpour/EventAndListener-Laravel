@@ -20,6 +20,6 @@ class CommentListener
      */
     public function handle(object $event): void
     {
-        //
+
     }
 }

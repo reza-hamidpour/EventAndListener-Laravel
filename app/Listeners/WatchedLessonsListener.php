@@ -20,6 +20,5 @@ class WatchedLessonsListener
      */
     public function handle(object $event): void
     {
-
     }
 }
