@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('unlocked_achievements', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->smallInteger("achievement_index");
+            $table->string("achievement_type");
             $table->timestamps();
         });
     }
